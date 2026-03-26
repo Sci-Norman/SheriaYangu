@@ -6,6 +6,7 @@ const { ensureUser, updateUserCounters, getUser, setLanguagePreference } = requi
 const { sendArticleSms } = require('../sms/sender');
 const { truncateForUssd, logWithTs } = require('../utils/helpers');
 const { supabase } = require('../db/supabase');
+const { answerConstitutionalQuery } = require('../ai/gemini');
 
 const RIGHTS_MAP = {
   1: 43,
@@ -239,7 +240,44 @@ async function ussdHandler(req, res) {
     }
 
     if (parts[0] === '5') {
-      return res.send(endAndClear(sessionId, '📞 Hotline voice is disabled. Use Search/Browse + SMS to get full constitutional articles.'));
+      if (parts.length === 1) {
+        return res.send('CON 🤖 Ask AI a Constitutional Question\n\nEnter your question:\n\n(e.g., "Can my landlord evict me?")\n\n0. Main Menu');
+      }
+
+      const question = parts.slice(1).join(' ').trim();
+      if (!question || question === '0') return res.send(menu());
+      if (question.length < 3) {
+        return res.send('CON Question too short.\nEnter at least 3 characters.\n0. Main Menu');
+      }
+
+      const aiResponse = await answerConstitutionalQuery(question);
+      
+      if (aiResponse.fallback || aiResponse.error) {
+        await updateUserCounters(phoneNumber, { searches: 1 });
+        await logSearch(phoneNumber, question, 0);
+        return res.send(
+          endAndClear(
+            sessionId,
+            `⚙️ ${aiResponse.error || 'AI unavailable. Try searching directly for keywords.'}`
+          )
+        );
+      }
+
+      await updateUserCounters(phoneNumber, { searches: 1 });
+      await logSearch(phoneNumber, question, 1);
+
+      const responseText = `🤖 AI RESPONSE\n\n${aiResponse.answer}\n\n📚 Relevant: ${aiResponse.articleRefs}`;
+      
+      // Send full AI response via SMS
+      if (aiResponse.articleRefs !== 'See Constitution') {
+        await supabase?.from('search_logs').insert({
+          phone_number: phoneNumber,
+          search_term: `[AI] ${question}`,
+          results_count: 1
+        });
+      }
+
+      return res.send(endAndClear(sessionId, responseText));
     }
 
     if (parts[0] === '6') {

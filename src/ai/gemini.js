@@ -5,7 +5,12 @@ const apiKey = process.env.GOOGLE_API_KEY;
 let client = null;
 
 if (apiKey) {
-  client = new GoogleGenerativeAI(apiKey);
+  try {
+    client = new GoogleGenerativeAI(apiKey);
+    console.log('[AI] Gemini client initialized successfully');
+  } catch (e) {
+    console.error('[AI] Failed to initialize Gemini client:', e.message);
+  }
 }
 
 async function answerConstitutionalQuery(question) {
@@ -33,7 +38,7 @@ Use simple Swahili/English mix. If unsure, say "Check with lawyer."
 Context from Constitution:
 ${context}`;
 
-    const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = client.getGenerativeModel({ model: 'gemini-pro' });
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: question }] }],
       systemInstruction: systemPrompt
@@ -54,6 +59,7 @@ ${context}`;
     };
   } catch (error) {
     console.error('[AI Query Error]', error.message);
+    console.error('[AI Query Error Stack]', error.stack);
     return {
       error: 'Unable to process query. Try searching directly.',
       fallback: true

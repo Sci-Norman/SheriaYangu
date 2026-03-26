@@ -14,7 +14,7 @@ async function listModels() {
   try {
     const client = new GoogleGenerativeAI(apiKey);
     console.log('\n📋 Attempting to list available models...\n');
-    
+
     // Try alternative approaches
     try {
       const models = await client.listModels();
@@ -25,7 +25,7 @@ async function listModels() {
       // Try using gemini-pro which is more standard
       const model = client.getGenerativeModel({ model: 'gemini-pro' });
       console.log('✅ gemini-pro model is available');
-      
+
       const result = await model.generateContent('Hello');
       console.log('✅ API call successful with gemini-pro');
     }

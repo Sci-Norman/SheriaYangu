@@ -1,0 +1,12 @@
+
+> sheria-yangu@1.0.0 start
+> node src/index.js
+
+[AI] Gemini client initialized successfully
+[2026-03-26T11:41:53.767Z] Sheria Yangu server running on port 3000
+[2026-03-26T11:42:00.091Z] USSD request {
+  sessionId: 'test123',
+  serviceCode: '000',
+  phoneNumber: '+254700000001',
+  text: '5*Can I vote?'
+}

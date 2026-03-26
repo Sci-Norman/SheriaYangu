@@ -22,8 +22,18 @@ async function answerConstitutionalQuery(question) {
   }
 
   try {
-    // Search for relevant articles first
-    const relatedArticles = await searchConstitution(question);
+    // Search for relevant articles with timeout
+    let relatedArticles = [];
+    try {
+      const searchPromise = searchConstitution(question);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Search timeout')), 3000)
+      );
+      relatedArticles = await Promise.race([searchPromise, timeoutPromise]);
+    } catch (searchError) {
+      console.error('[AI] Search failed:', searchError.message);
+      // Continue without search results
+    }
 
     // Build context from articles
     const context = relatedArticles
@@ -31,14 +41,14 @@ async function answerConstitutionalQuery(question) {
       .map((a) => `Article ${a.article_number} (${a.article_title}): ${a.simplified_content}`)
       .join('\n\n');
 
-    const systemPrompt = `You are a Kenyan constitutional law assistant. Answer questions about the Kenya Constitution 2010 concisely and accurately. 
-Reference specific articles. Keep responses under 160 characters for SMS. 
+    const systemPrompt = `You are a Kenyan constitutional law assistant. Answer questions about the Kenya Constitution 2010 concisely and accurately.
+Reference specific articles. Keep responses under 160 characters for SMS.
 Use simple Swahili/English mix. If unsure, say "Check with lawyer."
 
 Context from Constitution:
-${context}`;
+${context || 'No articles found - use general knowledge of Kenya Constitution'}`;
 
-    const model = client.getGenerativeModel({ model: 'gemini-pro' });
+    const model = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const result = await model.generateContent({
       contents: [{ role: 'user', parts: [{ text: question }] }],
       systemInstruction: systemPrompt
@@ -59,7 +69,6 @@ ${context}`;
     };
   } catch (error) {
     console.error('[AI Query Error]', error.message);
-    console.error('[AI Query Error Stack]', error.stack);
     return {
       error: 'Unable to process query. Try searching directly.',
       fallback: true

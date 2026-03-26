@@ -1,0 +1,68 @@
+
+> sheria-yangu@1.0.0 start
+> node src/index.js
+
+[AI] Gemini client initialized successfully
+[2026-03-26T11:51:26.023Z] Sheria Yangu server running on port 3000
+[2026-03-26T11:52:01.276Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1'
+}
+[2026-03-26T11:52:02.469Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1*rights'
+}
+[2026-03-26T11:52:04.499Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1*rights*1'
+}
+[2026-03-26T11:52:05.426Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1*rights*1*1'
+}
+[2026-03-26T11:52:05.731Z] [SMS] Attempting to send 2 SMS chunk(s) to +254791935128
+[2026-03-26T11:52:05.731Z] [SMS] Original number: +254791935128, Override: +254791935128
+[2026-03-26T11:52:05.731Z] [SMS] Sending message chunk (length: 602) to +254791935128
+[2026-03-26T11:52:06.268Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1'
+}
+[2026-03-26T11:52:06.613Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1*rights'
+}
+[2026-03-26T11:52:06.643Z] [SMS] ✅ Message sent successfully: { SMSMessageData: { Message: 'InvalidSenderId', Recipients: [] } }
+[2026-03-26T11:52:06.644Z] [SMS] Sending message chunk (length: 144) to +254791935128
+[2026-03-26T11:52:06.908Z] [SMS] ✅ Message sent successfully: { SMSMessageData: { Message: 'InvalidSenderId', Recipients: [] } }
+[2026-03-26T11:52:06.908Z] [SMS] ✅ All 2 SMS chunk(s) sent to +254791935128
+[2026-03-26T11:52:08.513Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1*rights*1'
+}
+[2026-03-26T11:52:09.387Z] USSD request {
+  sessionId: 'sms-test-1',
+  serviceCode: '000',
+  phoneNumber: '+254791935128',
+  text: '1*rights*1*1'
+}
+[2026-03-26T11:52:09.677Z] [SMS] Attempting to send 2 SMS chunk(s) to +254791935128
+[2026-03-26T11:52:09.677Z] [SMS] Original number: +254791935128, Override: +254791935128
+[2026-03-26T11:52:09.677Z] [SMS] Sending message chunk (length: 602) to +254791935128
+[2026-03-26T11:52:09.887Z] [SMS] ✅ Message sent successfully: { SMSMessageData: { Message: 'InvalidSenderId', Recipients: [] } }
+[2026-03-26T11:52:09.888Z] [SMS] Sending message chunk (length: 144) to +254791935128
+[2026-03-26T11:52:10.113Z] [SMS] ✅ Message sent successfully: { SMSMessageData: { Message: 'InvalidSenderId', Recipients: [] } }
+[2026-03-26T11:52:10.113Z] [SMS] ✅ All 2 SMS chunk(s) sent to +254791935128

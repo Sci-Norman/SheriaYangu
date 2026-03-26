@@ -1,4 +1,4 @@
-const { MAIN_MENU, SEARCH_PROMPT, CHAPTER_MENU, RIGHTS_MENU, SETTINGS_MENU } = require('./menus');
+const { MAIN_MENU, SEARCH_PROMPT, CHAPTER_MENU, RIGHTS_MENU } = require('./menus');
 const { getSession, clearSession } = require('./sessions');
 const { searchConstitution, getArticleByNumber, getArticlesByChapter } = require('../db/articles');
 const { getRandomQuestions, getQuestionById } = require('../db/quiz');
@@ -49,7 +49,14 @@ function endAndClear(sessionId, message) {
 
 async function logSearch(phoneNumber, term, resultsCount) {
   if (!supabase) return;
-  await supabase.from('search_logs').insert({ phone_number: phoneNumber, search_term: term, results_count: resultsCount });
+  try {
+    await Promise.race([
+      supabase.from('search_logs').insert({ phone_number: phoneNumber, search_term: term, results_count: resultsCount }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('logSearch timeout')), 5000))
+    ]);
+  } catch (error) {
+    logWithTs('[WARN] logSearch failed:', error.message);
+  }
 }
 
 function renderSearchResults(keyword, results) {
@@ -58,7 +65,7 @@ function renderSearchResults(keyword, results) {
   }
 
   const lines = results.slice(0, 5).map((r, idx) => `${idx + 1}. Art.${r.article_number} - ${r.article_title} (${r.one_word_tag})`);
-  return `CON 🔍 Results "${keyword}":\n\n${lines.join('\n')}\n\nEnter number, 0 Main`; 
+  return `CON 🔍 Results "${keyword}":\n\n${lines.join('\n')}\n\nEnter number, 0 Main`;
 }
 
 function renderChapterPage(chapter, articles, page = 0, pageSize = 7) {
@@ -167,7 +174,14 @@ async function ussdHandler(req, res) {
 
       const action = parts[3];
       if (action === '1') {
-        await sendArticleSms(phoneNumber, selected);
+        logWithTs('[DEBUG] Sending SMS for search result:', { title: selected?.article_title });
+        try {
+          await sendArticleSms(phoneNumber, selected);
+          logWithTs('[DEBUG] SMS sent successfully from search');
+        } catch (smsError) {
+          logWithTs('[ERROR] SMS sending failed from search:', smsError.message);
+          return res.send(endAndClear(sessionId, '❌ Failed to send SMS. Please try again.'));
+        }
         return res.send(endAndClear(sessionId, '✅ Full article sent via SMS. Check your messages. 🇰🇪'));
       }
       if (action === '2') {
@@ -216,22 +230,37 @@ async function ussdHandler(req, res) {
       if (choice === 0) return res.send(menu());
       const articleNo = RIGHTS_MAP[choice];
       if (!articleNo) return res.send('CON Invalid choice.\nTry again.');
-      const article = await getArticleByNumber(articleNo);
-      await updateUserCounters(phoneNumber, { articlesRead: 1 });
 
-      if (parts.length === 2) return res.send(articleDetailMenu(article));
+      try {
+        const article = await getArticleByNumber(articleNo);
+        if (!article) return res.send('CON Article not found.\n0. Main Menu');
 
-      const action = parts[2];
-      if (action === '1') {
-        await sendArticleSms(phoneNumber, article);
-        return res.send(endAndClear(sessionId, '✅ Full article sent via SMS.'));
+        await updateUserCounters(phoneNumber, { articlesRead: 1 });
+
+        if (parts.length === 2) return res.send(articleDetailMenu(article));
+
+        const action = parts[2];
+        if (action === '1') {
+          logWithTs('[DEBUG] Sending SMS for article:', { articleNo, articleTitle: article.article_title });
+          try {
+            await sendArticleSms(phoneNumber, article);
+            logWithTs('[DEBUG] SMS sent successfully');
+          } catch (smsError) {
+            logWithTs('[ERROR] SMS sending failed:', smsError.message);
+            return res.send(endAndClear(sessionId, '❌ Failed to send SMS. Please try again.'));
+          }
+          return res.send(endAndClear(sessionId, '✅ Full article sent via SMS.'));
+        }
+        if (action === '2') {
+          return res.send(endAndClear(sessionId, '📞 Voice call is disabled in this USSD+SMS deployment.'));
+        }
+        if (action === '0') return res.send(menu());
+        if (action === '3') return res.send(SEARCH_PROMPT);
+        return res.send('CON Invalid choice.');
+      } catch (error) {
+        logWithTs('[ERROR] Rights menu error:', error.message);
+        return res.send(endAndClear(sessionId, '❌ Error processing request. Please try again.'));
       }
-      if (action === '2') {
-        return res.send(endAndClear(sessionId, '📞 Voice call is disabled in this USSD+SMS deployment.'));
-      }
-      if (action === '0') return res.send(menu());
-      if (action === '3') return res.send(SEARCH_PROMPT);
-      return res.send('CON Invalid choice.');
     }
 
     if (parts[0] === '4') {
@@ -251,8 +280,10 @@ async function ussdHandler(req, res) {
       }
 
       const aiResponse = await answerConstitutionalQuery(question);
-      
+      logWithTs('[DEBUG] AI Response received:', { error: aiResponse.error, fallback: aiResponse.fallback });
+
       if (aiResponse.fallback || aiResponse.error) {
+        logWithTs('[DEBUG] AI had error, updating counters');
         await updateUserCounters(phoneNumber, { searches: 1 });
         await logSearch(phoneNumber, question, 0);
         return res.send(
@@ -263,67 +294,36 @@ async function ussdHandler(req, res) {
         );
       }
 
-      await updateUserCounters(phoneNumber, { searches: 1 });
-      await logSearch(phoneNumber, question, 1);
+      logWithTs('[DEBUG] AI success, skipping counters for now');
 
-      const responseText = `🤖 AI RESPONSE\n\n${aiResponse.answer}\n\n📚 Relevant: ${aiResponse.articleRefs}`;
-      
-      // Send full AI response via SMS
-      if (aiResponse.articleRefs !== 'See Constitution') {
-        await supabase?.from('search_logs').insert({
-          phone_number: phoneNumber,
-          search_term: `[AI] ${question}`,
-          results_count: 1
-        });
-      }
+      const answer = aiResponse.answer || 'No response';
+      const refs = aiResponse.articleRefs || 'See Constitution';
+      const responseText = `AI RESPONSE\n\n${answer}\n\nRelevant: ${refs}`;
+      logWithTs('[DEBUG] Response text built');
 
-      return res.send(endAndClear(sessionId, responseText));
-    }
+      const endMsg = endAndClear(sessionId, responseText);
+      logWithTs('[DEBUG] endAndClear returned');
+      res.set('Content-Type', 'text/plain; charset=utf-8');
+      res.write(endMsg);
+      res.end();
+      logWithTs('[DEBUG] Response sent');
 
-    if (parts[0] === '6') {
-      if (parts.length === 1) return res.send(SETTINGS_MENU);
-
-      if (parts[1] === '0') return res.send(menu());
-
-      if (parts[1] === '1') {
-        if (parts.length === 2) {
-          return res.send('CON 🌍 Language\n1. English\n2. Kiswahili\n0. Main Menu');
-        }
-        if (parts[2] === '1' || parts[2] === '2') {
-          session.language = parts[2] === '1' ? 'en' : 'sw';
-          await setLanguagePreference(phoneNumber, session.language);
-          return res.send(endAndClear(sessionId, `✅ Language set to ${session.language === 'en' ? 'English' : 'Kiswahili'}.`));
-        }
-        return res.send('CON Invalid choice.');
-      }
-
-      if (parts[1] === '2') {
-        const user = await getUser(phoneNumber);
-        return res.send(
-          endAndClear(
-            sessionId,
-            `📊 Stats\nSearches: ${user?.total_searches || 0}\nArticles: ${user?.total_articles_read || 0}\nQuizzes: ${user?.quizzes_completed || 0}\nBest: ${user?.quiz_score || 0}/5\nAirtime: KES ${user?.airtime_rewarded || 0}`
-          )
-        );
-      }
-
-      if (parts[1] === '3') {
-        return res.send(
-          endAndClear(
-            sessionId,
-            'Sheria Yangu helps every Kenyan learn constitutional rights via USSD + SMS on any phone. Built for civic power. 🇰🇪'
-          )
-        );
-      }
-
-      return res.send('CON Invalid choice.');
+      // Fire-and-forget: Update counters after response
+      setImmediate(() => {
+        updateUserCounters(phoneNumber, { searches: 1 }).catch(e => logWithTs('[WARN] updateUserCounters error:', e.message));
+        logSearch(phoneNumber, question, 1).catch(e => logWithTs('[WARN] logSearch error:', e.message));
+      });
+      return;
     }
 
     return res.send('CON Invalid choice.\nTry again.\n0. Main Menu');
   } catch (error) {
     logWithTs('USSD error', { message: error.message, stack: error.stack });
     clearSession(sessionId);
-    return res.send('END Service temporarily unavailable. Please try again shortly.');
+    // Only send response if headers haven't been sent yet
+    if (!res.headersSent) {
+      return res.send('END Service temporarily unavailable. Please try again shortly.');
+    }
   }
 }
 

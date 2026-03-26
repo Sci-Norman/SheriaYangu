@@ -1,0 +1,20 @@
+
+> sheria-yangu@1.0.0 start
+> node src/index.js
+
+[AI] Gemini client initialized successfully
+[2026-03-26T11:43:35.002Z] Sheria Yangu server running on port 3000
+[2026-03-26T11:43:41.102Z] USSD request {
+  sessionId: 'final1',
+  serviceCode: '000',
+  phoneNumber: '+254700000001',
+  text: '5*Can I vote?'
+}
+[AI Query Error] [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent: [429 Too Many Requests] You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. 
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash
+Please retry in 16.618177813s. [{"@type":"type.googleapis.com/google.rpc.Help","links":[{"description":"Learn more about Gemini API quotas","url":"https://ai.google.dev/gemini-api/docs/rate-limits"}]},{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaMetric":"generativelanguage.googleapis.com/generate_content_free_tier_requests","quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier","quotaDimensions":{"location":"global","model":"gemini-2.5-flash"},"quotaValue":"20"}]},{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"16s"}]
+[2026-03-26T11:43:43.557Z] [DEBUG] AI Response received: {
+  error: 'Unable to process query. Try searching directly.',
+  fallback: true
+}
+[2026-03-26T11:43:43.558Z] [DEBUG] AI had error, updating counters

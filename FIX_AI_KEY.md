@@ -58,7 +58,7 @@ curl -X POST http://localhost:3000/ussd \
 ```
 🤖 AI RESPONSE
 
-NO. Article 40 protects your right to property. 
+NO. Article 40 protects your right to property.
 Your landlord must follow legal procedures through court.
 
 📚 Relevant: Art.40, Art.27

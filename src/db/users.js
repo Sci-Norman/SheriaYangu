@@ -15,26 +15,38 @@ async function ensureUser(phoneNumber) {
 
 async function updateUserCounters(phoneNumber, counters = {}) {
   if (!supabase) return {};
-  const user = await ensureUser(phoneNumber);
 
-  const payload = {
-    last_active: new Date().toISOString(),
-    total_searches: (user.total_searches || 0) + (counters.searches || 0),
-    total_articles_read: (user.total_articles_read || 0) + (counters.articlesRead || 0),
-    quizzes_completed: (user.quizzes_completed || 0) + (counters.quizzesCompleted || 0),
-    quiz_score: Math.max(user.quiz_score || 0, counters.bestScore || 0),
-    airtime_rewarded: (user.airtime_rewarded || 0) + (counters.airtime || 0)
-  };
+  try {
+    const user = await Promise.race([
+      ensureUser(phoneNumber),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('ensureUser timeout')), 3000))
+    ]);
 
-  const { data, error } = await supabase
-    .from('users')
-    .update(payload)
-    .eq('phone_number', phoneNumber)
-    .select('*')
-    .single();
+    const payload = {
+      last_active: new Date().toISOString(),
+      total_searches: (user.total_searches || 0) + (counters.searches || 0),
+      total_articles_read: (user.total_articles_read || 0) + (counters.articlesRead || 0),
+      quizzes_completed: (user.quizzes_completed || 0) + (counters.quizzesCompleted || 0),
+      quiz_score: Math.max(user.quiz_score || 0, counters.bestScore || 0),
+      airtime_rewarded: (user.airtime_rewarded || 0) + (counters.airtime || 0)
+    };
 
-  if (error) throw error;
-  return data;
+    const { data, error } = await Promise.race([
+      supabase
+        .from('users')
+        .update(payload)
+        .eq('phone_number', phoneNumber)
+        .select('*')
+        .single(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('update timeout')), 3000))
+    ]);
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('[DB] updateUserCounters error:', error.message);
+    return {};
+  }
 }
 
 async function getUser(phoneNumber) {

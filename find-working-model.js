@@ -4,7 +4,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 async function testModels() {
   const apiKey = process.env.GOOGLE_API_KEY;
-  
+
   const modelsToTry = [
     'gemini-1.5-flash',
     'gemini-1.5-pro',

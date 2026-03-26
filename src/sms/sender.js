@@ -33,15 +33,33 @@ async function sendArticleSms(phoneNumber, article) {
   const messages = splitLongSms(text);
   const to = targetNumber(phoneNumber);
 
+  logWithTs(`[SMS] Attempting to send ${messages.length} SMS chunk(s) to ${to}`);
+  logWithTs(`[SMS] Original number: ${phoneNumber}, Override: ${process.env.AT_SMS_RECIPIENT_OVERRIDE || 'None'}`);
+
   for (const message of messages) {
-    logWithTs(`Sending SMS to ${to}`);
-    await getSms().send({
-      to: [to],
-      message,
-      from: process.env.AT_SENDER_ID || 'SHERIA'
-    });
+    try {
+      logWithTs(`[SMS] Sending message chunk (length: ${message.length}) to ${to}`);
+
+      // Build send request - omit 'from' in sandbox mode to avoid InvalidSenderId errors
+      const sendRequest = {
+        to: [to],
+        message
+      };
+
+      // Only add 'from' if we're NOT in sandbox mode
+      if (process.env.AT_USERNAME !== 'sandbox') {
+        sendRequest.from = process.env.AT_SENDER_ID || 'SHERIA';
+      }
+
+      const response = await getSms().send(sendRequest);
+      logWithTs(`[SMS] ✅ Message sent successfully:`, response);
+    } catch (error) {
+      logWithTs(`[SMS] ❌ Error sending message:`, { error: error.message, to, message: message.substring(0, 50) });
+      throw error;
+    }
   }
 
+  logWithTs(`[SMS] ✅ All ${messages.length} SMS chunk(s) sent to ${to}`);
   return { sent: messages.length, to };
 }
 

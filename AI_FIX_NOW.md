@@ -103,7 +103,7 @@ User: "Can my landlord evict me without court?"
 AI Response:
 "🤖 AI RESPONSE
 
-NO. Article 40 protects your right to property. 
+NO. Article 40 protects your right to property.
 Your landlord must follow legal procedures through court.
 
 📚 Relevant: Art.40, Art.27"
@@ -120,6 +120,6 @@ Your landlord must follow legal procedures through court.
 
 ---
 
-**Bottom line: Get your real API key from Google AI Studio, update .env, and you're done!** 
+**Bottom line: Get your real API key from Google AI Studio, update .env, and you're done!**
 
 Go to: https://ai.google.dev/aistudio right now! ⏱️

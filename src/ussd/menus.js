@@ -1,4 +1,4 @@
-const MAIN_MENU = `CON 🇰🇪 SHERIA YANGU\nKnow Your Rights. Know Your Power.\n\n1. 🔍 Search\n2. 📖 Browse Chapter\n3. ⚖️ Know Your Rights\n4. 🧠 Civic Quiz\n5. 🤖 Ask AI\n6. ⚙️ Settings`;
+const MAIN_MENU = `CON 🇰🇪 SHERIA YANGU\nKnow Your Rights. Know Your Power.\n\n1. Search by Topic\n2. Browse Articles\n3. Know Your Rights\n4. Take Quiz\n5. Ask AI Lawyer`;
 
 const SEARCH_PROMPT = `CON 🔍 Search Constitution\nType keyword: health, land, education, president, taxes, police, women, children`;
 

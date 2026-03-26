@@ -1,0 +1,11 @@
+{
+  "python.terminal.useEnvFile": true,
+  "python.terminal.executeInFileDir": true,
+  "python.linting.enabled": false,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python",
+    "editor.formatOnSave": false
+  },
+  "editor.formatOnSave": false,
+  "files.trimTrailingWhitespace": true
+}
